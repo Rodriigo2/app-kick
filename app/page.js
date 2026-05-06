@@ -147,7 +147,7 @@ export default function HomePage() {
 
       {isActive && (
         <>
-          <StatsBar status={status} channelInfo={channelInfo} stats={stats} titleChanges={titleChanges} onRefresh={refreshChannelInfo} />
+          <StatsBar status={status} channelInfo={channelInfo} stats={stats} titleChanges={titleChanges} categoryHistory={categoryHistory} onRefresh={refreshChannelInfo} />
           <BackfillBar backfill={backfill} liveStartedAt={channelInfo?.liveStartedAt ?? null} />
 
           <ComboDisplay combo={activeCombo} />

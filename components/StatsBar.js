@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 
+function fmtDur(ms) {
+  if (!ms) return "";
+  const m = Math.floor(ms / 60_000), h = Math.floor(m / 60);
+  return h ? `${h}h ${m % 60}m` : `${m}m`;
+}
+
 function formatDuration(ms) {
   if (!ms || ms < 0) return "00:00:00";
   const total = Math.floor(ms / 1000);
@@ -45,7 +51,7 @@ function VerifiedBadge() {
   );
 }
 
-export default function StatsBar({ status, channelInfo, stats, titleChanges = [], onRefresh }) {
+export default function StatsBar({ status, channelInfo, stats, titleChanges = [], categoryHistory = [], onRefresh }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -62,11 +68,24 @@ export default function StatsBar({ status, channelInfo, stats, titleChanges = []
   if (!channelInfo) return null;
 
   const profilePic     = channelInfo.user?.profilePic;
+  const thumbnail      = channelInfo.streamThumbnail ?? null;
   const username       = channelInfo.user?.username || channelInfo.slug;
   const tags           = channelInfo.streamTags ?? [];
   const verified       = channelInfo.verified ?? false;
   const followersCount = channelInfo.followersCount ?? null;
   const bio            = channelInfo.user?.bio ?? null;
+
+  // Category with most activity (time-weighted)
+  const topActivityCat = (() => {
+    if (!categoryHistory?.length) return null;
+    const dur = {};
+    categoryHistory.forEach((c, i) => {
+      const end = categoryHistory[i + 1]?.startTs ?? Date.now();
+      dur[c.category] = (dur[c.category] ?? 0) + (end - c.startTs);
+    });
+    const [name, ms] = Object.entries(dur).sort((a, b) => b[1] - a[1])[0] ?? [];
+    return name ? { name, ms } : null;
+  })();
   const socials        = [
     channelInfo.user?.instagram && { type: "instagram", handle: channelInfo.user.instagram, url: `https://instagram.com/${channelInfo.user.instagram}`, icon: "IG" },
     channelInfo.user?.twitter   && { type: "twitter",   handle: channelInfo.user.twitter,   url: `https://x.com/${channelInfo.user.twitter}`,           icon: "𝕏"  },
@@ -139,6 +158,11 @@ export default function StatsBar({ status, channelInfo, stats, titleChanges = []
                 <span className="flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-kick-green/60" />
                   {channelInfo.streamCategory}
+                </span>
+              )}
+              {topActivityCat && topActivityCat.name !== channelInfo.streamCategory && (
+                <span className="flex items-center gap-1 text-kick-green/70" title="Categoría con más tiempo">
+                  🏆 {topActivityCat.name} {fmtDur(topActivityCat.ms)}
                 </span>
               )}
               {streamMs !== null && (

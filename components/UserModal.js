@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { getUserTopEmote, getUserLastMessage } from "@/lib/chatSession";
+import { getUserTopEmote, getUserLastMessage, getUserJourney } from "@/lib/chatSession";
+import ViewerJourney from "./ViewerJourney";
 import MessageRenderer from "./MessageRenderer";
 
 function Stat({ label, value, accent }) {
@@ -44,6 +45,7 @@ export default function UserModal({ user, rank, totalMessages, emoteMap = {}, on
   const rankBadge = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;
   const topEmote   = getUserTopEmote(user.username);
   const lastMsg    = getUserLastMessage(user.username);
+  const journey    = getUserJourney(user.username);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
@@ -76,6 +78,12 @@ export default function UserModal({ user, rank, totalMessages, emoteMap = {}, on
           <Stat label="% del chat"  value={`${pct}%`} />
           <Stat label="Promedio"    value={avgLabel} />
           <Stat label="Rank"        value={`#${rank}`} />
+          {journey && (
+            <Stat label="Viewer Score" value={journey.score.toLocaleString()} accent />
+          )}
+          {journey && (
+            <Stat label="Minutos activo" value={`${journey.activeMin} / ${journey.totalMin}`} />
+          )}
           {user.streak >= 2 && (
             <div className="col-span-2 flex items-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/10 px-4 py-2">
               <span className="text-lg">🔥</span>
@@ -90,6 +98,11 @@ export default function UserModal({ user, rank, totalMessages, emoteMap = {}, on
             </div>
           )}
         </div>
+
+        {/* Viewer journey — improved horizontal timeline */}
+        {journey && journey.buckets.length > 1 && (
+          <ViewerJourney journey={journey} />
+        )}
 
         {/* Last message */}
         {lastMsg && (
