@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18">
+  <rect width="18" height="18" rx="4" fill="#e11d48"/>
+  <!-- Microphone body -->
+  <rect x="7" y="3" width="4" height="6" rx="2" fill="white"/>
+  <!-- Microphone stand -->
+  <path d="M5.5 9.5 Q5.5 13 9 13 Q12.5 13 12.5 9.5" stroke="white" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <rect x="8.4" y="13" width="1.2" height="2" fill="white"/>
+  <rect x="6.5" y="15" width="5" height="1" rx="0.5" fill="white"/>
+</svg>
