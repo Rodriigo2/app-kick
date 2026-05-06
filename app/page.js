@@ -13,16 +13,18 @@ import UserTracker      from "@/components/UserTracker";
 import ComboDisplay     from "@/components/ComboDisplay";
 import SessionSummary   from "@/components/SessionSummary";
 import SessionHistory   from "@/components/SessionHistory";
+import SubCounter      from "@/components/SubCounter";
 import TopDonors       from "@/components/TopDonors";
 import { useKickChat }  from "@/hooks/useKickChat";
 
-const LIVE_POLL_MS = 60_000; // check every 60s if stream is still live
+const LIVE_POLL_MS = 30_000; // check every 30s if stream is still live
 
 export default function HomePage() {
   const {
     status, error, channelInfo, stats, backfill,
     ranking, emoteRanking, timeSeries, peaks, titleChanges,
-    categoryHistory, activeCombo, lastSummary, donors,
+    categoryHistory, categoryStats, activeCombo, lastSummary, donors,
+    subCount, giftCount, subEvents,
     peakUsers, quietMoment,
     messages, emoteMap, trackedUsername,
     connect, stop, exportXLSX, trackUser, refreshChannelInfo,
@@ -51,7 +53,7 @@ export default function HomePage() {
         if (res.ok) {
           if (data?.isLive === false) {
             offlineCountRef.current += 1;
-            if (offlineCountRef.current >= 2) stop();
+            if (offlineCountRef.current >= 1) stop();
           } else {
             offlineCountRef.current = 0;
             // Refresh category, title, viewers and tags automatically
@@ -147,26 +149,24 @@ export default function HomePage() {
 
       {isActive && (
         <>
-          <StatsBar status={status} channelInfo={channelInfo} stats={stats} titleChanges={titleChanges} categoryHistory={categoryHistory} onRefresh={refreshChannelInfo} />
+          {/* ── 1. Info del canal ─────────────────────────────── */}
+          <StatsBar status={status} channelInfo={channelInfo} stats={stats}
+            titleChanges={titleChanges} categoryHistory={categoryHistory} onRefresh={refreshChannelInfo} />
           <BackfillBar backfill={backfill} liveStartedAt={channelInfo?.liveStartedAt ?? null} />
 
+          {/* ── 2. Alertas contextuales ───────────────────────── */}
           <ComboDisplay combo={activeCombo} />
-
           {trackedUsername && <UserTracker username={trackedUsername} emoteMap={emoteMap} />}
 
+          {/* ── 3. Contenido principal: chat + ranking ────────── */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-            <ChatFeed messages={messages} emoteMap={emoteMap} subscriberBadges={channelInfo?.subscriberBadges ?? []} />
-            <RankingTable ranking={ranking} totalMessages={stats.totalMessages} emoteMap={emoteMap} trackedUsername={trackedUsername} onTrack={trackUser} />
+            <ChatFeed messages={messages} emoteMap={emoteMap}
+              subscriberBadges={channelInfo?.subscriberBadges ?? []} />
+            <RankingTable ranking={ranking} totalMessages={stats.totalMessages}
+              emoteMap={emoteMap} trackedUsername={trackedUsername} onTrack={trackUser} />
           </div>
 
-          {emoteRanking.length > 0 && (
-            <EmoteRanking emoteRanking={emoteRanking} totalMessages={stats.totalMessages} />
-          )}
-
-          {donors && (
-            <TopDonors donors={donors} />
-          )}
-
+          {/* ── 4. Análisis (colapsable) ──────────────────────── */}
           {hasAnalytics && (
             <div className="flex flex-col gap-4">
               <button onClick={() => setAnalyticsOpen((v) => !v)}
@@ -178,12 +178,28 @@ export default function HomePage() {
 
               {analyticsOpen && (
                 <div className="flex flex-col gap-4">
-                  {timeSeries.length > 1 && (
-                    <ActivityChart timeSeries={timeSeries} peaks={peaks} peakUsers={peakUsers} quietMoment={quietMoment} />
-                  )}
+                  {/* Gráfico de actividad + Top emotes lado a lado */}
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    {timeSeries.length > 1 && (
+                      <ActivityChart timeSeries={timeSeries} peaks={peaks}
+                        peakUsers={peakUsers} quietMoment={quietMoment} />
+                    )}
+                    {emoteRanking.length > 0 && (
+                      <EmoteRanking emoteRanking={emoteRanking} totalMessages={stats.totalMessages} />
+                    )}
+                  </div>
+
+                  {/* Tiempo por categoría */}
                   {categoryHistory?.length > 0 && (
-                    <CategoryTimeline categoryHistory={categoryHistory} sessionStart={stats.startedAt} />
+                    <CategoryTimeline categoryHistory={categoryHistory}
+                      categoryStats={categoryStats} sessionStart={stats.startedAt} />
                   )}
+
+                  {/* Top donadores */}
+                  {donors && <TopDonors donors={donors} />}
+
+                  {/* Contador de subs */}
+                  <SubCounter subCount={subCount} giftCount={giftCount} subEvents={subEvents} />
                 </div>
               )}
             </div>
