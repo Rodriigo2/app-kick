@@ -9,9 +9,9 @@ module.exports = {
     extend: {
       colors: {
         kick: {
-          green: "#53fc18",
-          dark: "#0a0a0a",
-          panel: "#111111",
+          green:  "#53fc18",
+          dark:   "#0a0a0a",
+          panel:  "#111111",
           border: "#1f1f1f",
         },
       },

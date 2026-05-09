@@ -1,17 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-
-function fmtDur(ms) {
-  if (!ms) return "—";
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  return h ? `${h}h ${m}m ${sec}s` : m ? `${m}m ${sec}s` : `${sec}s`;
-}
-function fmtTime(ts) {
-  if (!ts) return "—";
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+import { fmtTime, fmtDur } from "@/lib/formatters";
+import Modal from "./Modal";
 
 function Stat({ label, value, sub, accent }) {
   return (
@@ -23,30 +13,30 @@ function Stat({ label, value, sub, accent }) {
   );
 }
 
-export default function SessionSummary({ summary, onClose }) {
-  useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+function Row({ icon, label, right }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-kick-border bg-black/40 px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span>{icon}</span>
+        <span className="text-xs text-neutral-500">{label}</span>
+      </div>
+      <div className="text-right">{right}</div>
+    </div>
+  );
+}
 
+export default function SessionSummary({ summary, onClose }) {
   if (!summary) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-
-      <div className="relative flex w-full max-w-lg flex-col gap-5 rounded-2xl border border-kick-border bg-kick-panel p-6 shadow-2xl">
+    <Modal onClose={onClose} maxWidth="max-w-lg">
+      <div className="flex flex-col gap-5 p-6">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-bold text-neutral-100">Resumen de sesión</h2>
-            <p className="text-xs text-neutral-500">
-              {summary.channel} · finalizó a las {fmtTime(summary.stoppedAt)}
-            </p>
-            {summary.streamTitle && (
-              <p className="mt-0.5 truncate text-xs text-neutral-400 italic">"{summary.streamTitle}"</p>
-            )}
+            <p className="text-xs text-neutral-500">{summary.channel} · finalizó a las {fmtTime(summary.stoppedAt)}</p>
+            {summary.streamTitle && <p className="mt-0.5 truncate text-xs italic text-neutral-400">"{summary.streamTitle}"</p>}
           </div>
           <button onClick={onClose} className="text-neutral-500 hover:text-neutral-200">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -55,7 +45,7 @@ export default function SessionSummary({ summary, onClose }) {
           </button>
         </div>
 
-        {/* Main stats grid */}
+        {/* Main stats */}
         <div className="grid grid-cols-2 gap-3">
           <Stat label="Mensajes totales" value={summary.totalMessages.toLocaleString()} accent />
           <Stat label="Usuarios únicos"  value={summary.uniqueUsers.toLocaleString()} />
@@ -66,78 +56,79 @@ export default function SessionSummary({ summary, onClose }) {
         {/* Highlights */}
         <div className="flex flex-col gap-2">
           {summary.topUser && (
-            <div className="flex items-center justify-between rounded-lg border border-kick-border bg-black/40 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-400">🏆</span>
-                <span className="text-xs text-neutral-500">Usuario más activo</span>
-              </div>
-              <div className="text-right">
+            <Row icon="🏆" label="Usuario más activo" right={
+              <>
                 <div className="font-semibold text-neutral-100">{summary.topUser.username}</div>
                 <div className="font-mono text-xs text-neutral-500">{summary.topUser.count} msgs</div>
-              </div>
-            </div>
+              </>
+            } />
           )}
-
           {summary.peakMoment && (
-            <div className="flex items-center justify-between rounded-lg border border-kick-border bg-black/40 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-orange-400">📈</span>
-                <span className="text-xs text-neutral-500">Momento más activo</span>
-              </div>
-              <div className="text-right">
+            <Row icon="📈" label="Momento más activo" right={
+              <>
                 <div className="font-mono font-semibold text-kick-green">{summary.peakMoment.count} msgs/min</div>
                 <div className="font-mono text-xs text-neutral-500">a las {fmtTime(summary.peakMoment.ts)}</div>
-              </div>
-            </div>
+              </>
+            } />
           )}
-
           {summary.topEmote && (
-            <div className="flex items-center justify-between rounded-lg border border-kick-border bg-black/40 px-4 py-3">
+            <Row icon="✨" label="Emote más usado" right={
               <div className="flex items-center gap-2">
-                <span className="text-purple-400">✨</span>
-                <span className="text-xs text-neutral-500">Emote más usado</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {summary.topEmote.url && (
-                  <img src={summary.topEmote.url} alt={summary.topEmote.name} className="h-6 w-auto object-contain" />
-                )}
-                <div className="text-right">
+                {summary.topEmote.url && <img src={summary.topEmote.url} alt={summary.topEmote.name} className="h-6 w-auto object-contain" />}
+                <div>
                   <div className="font-mono text-sm font-semibold text-neutral-100">{summary.topEmote.name}</div>
                   <div className="font-mono text-xs text-neutral-500">{summary.topEmote.count} veces</div>
                 </div>
               </div>
-            </div>
+            } />
           )}
-
           {summary.longestCat && (
-            <div className="flex items-center justify-between rounded-lg border border-kick-border bg-black/40 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-blue-400">🎮</span>
-                <span className="text-xs text-neutral-500">Categoría principal</span>
-              </div>
-              <div className="text-right">
+            <Row icon="🎮" label="Categoría principal" right={
+              <>
                 <div className="font-semibold text-neutral-100">{summary.longestCat.category}</div>
                 <div className="font-mono text-xs text-neutral-500">{fmtDur(summary.longestCat.durationMs)}</div>
+              </>
+            } />
+          )}
+          {summary.titleChanges > 0 && (
+            <Row icon="✏️" label="Cambios de título" right={
+              <div className="font-mono text-sm text-neutral-300">{summary.titleChanges}</div>
+            } />
+          )}
+          {summary.lurkerStats?.viewers > 0 && (
+            <div className="rounded-lg border border-kick-border bg-black/40 px-4 py-3">
+              <div className="mb-2 flex items-center gap-2">
+                <span>👥</span>
+                <span className="text-xs text-neutral-500">Engagement de viewers</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {[
+                  { val: `${summary.lurkerStats.engagementRate}%`, label: "engagement", color: "text-kick-green" },
+                  { val: summary.lurkerStats.chatters.toLocaleString(), label: "chatters", color: "text-neutral-100" },
+                  { val: summary.lurkerStats.lurkers.toLocaleString(), label: "lurkers", color: "text-neutral-500" },
+                ].map(({ val, label, color }) => (
+                  <div key={label}>
+                    <div className={`font-mono text-lg font-bold ${color}`}>{val}</div>
+                    <div className="text-[10px] text-neutral-600">{label}</div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
-
-          {summary.titleChanges > 0 && (
-            <div className="flex items-center justify-between rounded-lg border border-kick-border bg-black/40 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span>✏️</span>
-                <span className="text-xs text-neutral-500">Cambios de título</span>
+          {((summary.subCount ?? 0) + (summary.giftCount ?? 0)) > 0 && (
+            <Row icon="⭐" label="Subs durante la sesión" right={
+              <div className="flex items-center gap-4">
+                {summary.subCount > 0 && <div><div className="font-mono font-semibold text-kick-green">{summary.subCount}</div><div className="text-[10px] text-neutral-600">nuevos</div></div>}
+                {summary.giftCount > 0 && <div><div className="font-mono font-semibold text-purple-400">{summary.giftCount}</div><div className="text-[10px] text-neutral-600">gifted</div></div>}
               </div>
-              <div className="font-mono text-sm text-neutral-300">{summary.titleChanges}</div>
-            </div>
+            } />
           )}
         </div>
 
-        <button onClick={onClose}
-          className="w-full rounded-xl bg-kick-green py-2.5 text-sm font-semibold text-black transition hover:brightness-110">
+        <button onClick={onClose} className="w-full rounded-xl bg-kick-green py-2.5 text-sm font-semibold text-black transition hover:brightness-110">
           Cerrar
         </button>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -15,38 +15,18 @@ export default function BackfillBar({ backfill, liveStartedAt }) {
     : null;
 
   return (
-    <div className="rounded-xl border border-kick-border bg-kick-panel px-5 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          {active ? (
-            <>
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400" />
-              <span className="text-neutral-400">Cargando historial…</span>
-            </>
-          ) : (
-            <>
-              <span className="h-1.5 w-1.5 rounded-full bg-kick-green" />
-              <span className="text-neutral-400">
-                Historial cargado
-                {cappedAt === "messages" && " · límite alcanzado"}
-                {cappedAt === "pages"    && " · límite alcanzado"}
-              </span>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4 font-mono text-xs text-neutral-500">
-          <span>{count.toLocaleString()} msg</span>
-          {oldestTs && liveStartedAt && (
-            <span>desde {fmt(oldestTs)} · inicio {fmt(liveStartedAt)}</span>
-          )}
-        </div>
-      </div>
-
+    <div className="flex items-center gap-3 rounded-lg border border-kick-border/60 bg-kick-panel/60 px-3 py-2">
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? "animate-pulse bg-yellow-400" : "bg-kick-green"}`} />
+      <span className="text-xs text-neutral-500">
+        {active ? "Cargando historial" : "Historial"}
+      </span>
+      <span className="font-mono text-xs text-neutral-400">{count.toLocaleString()} msgs</span>
+      {oldestTs && liveStartedAt && (
+        <span className="text-[10px] text-neutral-600">{fmt(oldestTs)} → {fmt(liveStartedAt)}</span>
+      )}
       {progress !== null && active && (
-        <div className="mt-2 h-0.5 w-full overflow-hidden rounded-full bg-white/5">
-          <div className="h-full rounded-full bg-kick-green/60 transition-all duration-500"
-            style={{ width: `${progress}%` }} />
+        <div className="flex-1 h-1 overflow-hidden rounded-full bg-white/5">
+          <div className="h-full rounded-full bg-kick-green/60 transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       )}
     </div>

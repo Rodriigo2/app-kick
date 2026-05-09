@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import MessageRenderer from "./MessageRenderer";
 import BadgeList from "./BadgeList";
 
-export default function ChatFeed({ messages, emoteMap = {}, subscriberBadges = [] }) {
+export default function ChatFeed({ messages, emoteMap = {}, subscriberBadges = [], chatroomId = null, onUserClick }) {
   const containerRef = useRef(null);
   const atBottomRef  = useRef(true);
   const [showJump, setShowJump] = useState(false);
@@ -113,10 +113,17 @@ export default function ChatFeed({ messages, emoteMap = {}, subscriberBadges = [
                     : ""
                 }`}
               >
-                <BadgeList badges={m.badges ?? []} subscriberBadges={subscriberBadges} />
-                <span className="font-semibold" style={{ color: /^#[0-9a-f]{3,6}$/i.test(m.color) ? m.color : "#53fc18" }}>
-                  {m.username}:{" "}
+                <span className="mr-1.5 font-mono text-[10px] text-neutral-600 select-none">
+                  {new Date(m.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
+                <BadgeList badges={m.badges ?? []} subscriberBadges={subscriberBadges} chatroomId={chatroomId} />
+                <button
+                  onClick={() => onUserClick?.(m.username)}
+                  className="font-semibold hover:underline focus:outline-none"
+                  style={{ color: /^#[0-9a-f]{3,6}$/i.test(m.color) ? m.color : "#53fc18" }}
+                >
+                  {m.username}:
+                </button>{" "}
                 <span className="break-words text-neutral-300">
                   <MessageRenderer content={m.content} emoteMap={emoteMap} />
                 </span>

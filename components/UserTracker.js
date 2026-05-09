@@ -2,22 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getTrackedUserData, trackUser } from "@/lib/chatSession";
+import { fmtTime } from "@/lib/formatters";
 import MessageRenderer from "./MessageRenderer";
 
-// Scroll to bottom of a container without affecting the page scroll.
 function scrollContainerToBottom(el) {
   if (el) el.scrollTop = el.scrollHeight;
 }
 
-function fmtTime(ts) {
-  if (!ts) return "—";
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
 export default function UserTracker({ username, emoteMap = {} }) {
-  const [data, setData]   = useState(() => getTrackedUserData());
-  const listRef           = useRef(null);
-  const atBottomRef       = useRef(true);
+  const [data, setData]       = useState(() => getTrackedUserData());
+  const [profilePic, setProfilePic] = useState(null);
+  const listRef               = useRef(null);
+  const atBottomRef           = useRef(true);
+
+  useEffect(() => {
+    if (!username) { setProfilePic(null); return; }
+    setProfilePic(null);
+    fetch(`/api/channel/${encodeURIComponent(username)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.user?.profilePic) setProfilePic(d.user.profilePic); })
+      .catch(() => {});
+  }, [username]);
 
   useEffect(() => {
     const id = setInterval(() => setData(getTrackedUserData()), 1000);
@@ -40,11 +45,23 @@ export default function UserTracker({ username, emoteMap = {} }) {
     <div className="flex flex-col gap-3 rounded-xl border border-kick-green/30 bg-kick-panel p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-kick-green" />
-          <span className="text-sm font-semibold text-neutral-100">
-            Siguiendo a <span className="text-kick-green">{data.username}</span>
-          </span>
+        <div className="flex items-center gap-3">
+          {/* Avatar */}
+          {profilePic ? (
+            <img src={profilePic} alt={data.username}
+              className="h-10 w-10 rounded-full object-cover ring-2 ring-kick-green/40" />
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-kick-green/20 text-sm font-bold text-kick-green ring-2 ring-kick-green/20">
+              {data.username[0]?.toUpperCase()}
+            </div>
+          )}
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-kick-green" />
+              <span className="text-[10px] uppercase tracking-wider text-neutral-500">Siguiendo</span>
+            </div>
+            <span className="text-sm font-semibold text-kick-green">{data.username}</span>
+          </div>
         </div>
         <button
           onClick={() => trackUser(null)}

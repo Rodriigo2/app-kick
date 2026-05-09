@@ -5,12 +5,20 @@ const STV_CDN = "https://cdn.7tv.app/emote";
 const STV_API = "https://7tv.io/v3";
 
 function shapeStvEmotes(emotes = []) {
-  const map = {};
+  const map  = {};
+  const tags = {};
   for (const e of emotes) {
     if (!e?.name || !e?.id) continue;
     map[e.name] = `${STV_CDN}/${e.id}/1x.webp`;
+    const t = [...(e.tags ?? [])];
+    if (e.animated) t.push("__animated__");
+    if (t.length) tags[e.name] = t;
   }
-  return map;
+  return { map, tags };
+}
+
+function merge(a, b) {
+  return { map: { ...a.map, ...b.map }, tags: { ...a.tags, ...b.tags } };
 }
 
 async function stv(path, opts = {}) {
@@ -38,55 +46,50 @@ async function stvGql(query) {
   } catch { return null; }
 }
 
-// 1. Global 7TV emotes
 async function fetch7tvGlobal() {
   const data = await stv("/emote-sets/global", { next: { revalidate: 3600 } });
   return shapeStvEmotes(data?.emotes);
 }
 
-// 2. Channel active emote set by Kick user ID (most accurate)
 async function fetch7tvByKickUserId(kickUserId) {
-  if (!kickUserId) return {};
+  if (!kickUserId) return { map: {}, tags: {} };
   const data = await stv(`/users/kick/${kickUserId}`);
   return shapeStvEmotes(data?.emote_set?.emotes);
 }
 
-// 3. Fallback: GQL user search by slug — returns ALL emote sets of that user
 async function fetch7tvBySlug(slug) {
-  if (!slug) return {};
+  if (!slug) return { map: {}, tags: {} };
   const safeSlug = slug.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 50);
   const res = await stvGql(`{
     users(query: "${safeSlug}", limit: 3) {
-      connections { platform id }
-      emote_sets { id name emotes { id name } }
+      connections { platform id username }
+      emote_sets { id name emotes { id name tags animated } }
     }
   }`);
   const users = res?.data?.users ?? [];
-  // Prefer a user with a KICK connection matching the slug
   const target =
     users.find((u) =>
       u.connections?.some(
         (c) => c.platform === "KICK" && c.username?.toLowerCase() === safeSlug
       )
     ) ?? users[0];
-  if (!target) return {};
-  let merged = {};
+  if (!target) return { map: {}, tags: {} };
+  let merged = { map: {}, tags: {} };
   for (const set of target.emote_sets ?? []) {
-    Object.assign(merged, shapeStvEmotes(set.emotes));
+    merged = merge(merged, shapeStvEmotes(set.emotes));
   }
   return merged;
 }
 
-// 4. Fetch a specific 7TV emote set by ID (used when user provides one)
 async function fetch7tvSet(setId) {
-  if (!setId) return {};
+  if (!setId) return { map: {}, tags: {} };
   const data = await stv(`/emote-sets/${setId}`);
   return shapeStvEmotes(data?.emotes);
 }
 
 const VALID_KICK_ID = /^\d{1,12}$/;
 const VALID_SLUG_RE = /^[a-z0-9_-]{1,64}$/i;
-const VALID_SET_ID  = /^[a-zA-Z0-9]{10,30}$/; // 7TV ObjectID format
+const VALID_SET_ID  = /^[a-zA-Z0-9]{10,30}$/;
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -94,25 +97,27 @@ export async function GET(request) {
   const rawSlug       = searchParams.get("slug");
   const rawSetId      = searchParams.get("setId");
 
-  // Validate and sanitize all parameters
   const kickUserId = rawKickUserId && VALID_KICK_ID.test(rawKickUserId) ? rawKickUserId : null;
   const slug       = rawSlug       && VALID_SLUG_RE.test(rawSlug)       ? rawSlug.toLowerCase() : null;
   const setId      = rawSetId      && VALID_SET_ID.test(rawSetId)       ? rawSetId : null;
 
-  const [globalMap, channelMap] = await Promise.all([
+  const [global7tv, channel7tv] = await Promise.all([
     fetch7tvGlobal(),
     setId
       ? fetch7tvSet(setId)
       : kickUserId
         ? fetch7tvByKickUserId(kickUserId).then((m) =>
-            Object.keys(m).length ? m : fetch7tvBySlug(slug)
+            Object.keys(m.map).length ? m : fetch7tvBySlug(slug)
           )
         : fetch7tvBySlug(slug),
   ]);
 
+  const merged = merge(global7tv, channel7tv);
+
   return Response.json({
-    global:  Object.keys(globalMap).length,
-    channel: Object.keys(channelMap).length,
-    emotes:  { ...globalMap, ...channelMap }, // channel overrides global
+    global:  Object.keys(global7tv.map).length,
+    channel: Object.keys(channel7tv.map).length,
+    emotes:  merged.map,
+    tags:    merged.tags, // { emoteName: string[] }
   });
 }

@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+import { fmtTime } from "@/lib/formatters";
 
 export default function SubCounter({ subCount, giftCount, subEvents }) {
   const [expanded, setExpanded] = useState(false);
@@ -13,8 +10,8 @@ export default function SubCounter({ subCount, giftCount, subEvents }) {
   if (total === 0 && !subEvents?.length) return null;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-kick-border bg-kick-panel p-4">
-      {/* Summary row */}
+    <div className="flex flex-col gap-3 rounded-xl border border-kick-border bg-kick-panel p-4">
+      {/* Summary */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
@@ -24,22 +21,20 @@ export default function SubCounter({ subCount, giftCount, subEvents }) {
           {subCount > 0 && (
             <div className="flex flex-col border-l border-kick-border pl-4">
               <span className="font-mono text-lg font-semibold text-neutral-100">{subCount}</span>
-              <span className="text-[10px] uppercase tracking-wide text-neutral-500">nuevos subs</span>
+              <span className="text-[10px] uppercase tracking-wide text-neutral-500">nuevos</span>
             </div>
           )}
           {giftCount > 0 && (
             <div className="flex flex-col border-l border-kick-border pl-4">
               <span className="font-mono text-lg font-semibold text-purple-400">{giftCount}</span>
-              <span className="text-[10px] uppercase tracking-wide text-neutral-500">gifted subs</span>
+              <span className="text-[10px] uppercase tracking-wide text-neutral-500">gifted</span>
             </div>
           )}
         </div>
         {subEvents?.length > 0 && (
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="rounded-lg border border-kick-border px-3 py-1 text-xs text-neutral-400 hover:border-kick-green/50 hover:text-neutral-200"
-          >
-            {expanded ? "Ocultar" : `Ver historial (${subEvents.length})`}
+          <button onClick={() => setExpanded((v) => !v)}
+            className="rounded-lg border border-kick-border px-3 py-1 text-xs text-neutral-400 hover:border-kick-green/50 hover:text-neutral-200">
+            {expanded ? "Ocultar" : "Historial"}
           </button>
         )}
       </div>
@@ -54,7 +49,7 @@ export default function SubCounter({ subCount, giftCount, subEvents }) {
                 <>
                   <span className="h-2 w-2 shrink-0 rounded-full bg-kick-green" />
                   <span className="flex-1 font-medium text-neutral-100">{ev.username}</span>
-                  <span className="text-xs text-neutral-500">sub {ev.months > 1 ? `· ${ev.months}m` : ""}</span>
+                  <span className="text-xs text-neutral-500">sub{ev.months > 1 ? ` · ${ev.months}m` : ""}</span>
                 </>
               ) : (
                 <>

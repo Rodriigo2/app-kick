@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { fmtTime } from "@/lib/formatters";
 import MessageRenderer from "./MessageRenderer";
-
-function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-}
 
 const STATUS_DOT = {
   idle:       "bg-neutral-500",

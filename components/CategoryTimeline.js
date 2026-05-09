@@ -1,14 +1,6 @@
 "use client";
 
-function fmtDur(ms) {
-  if (!ms || ms < 0) return "—";
-  const m = Math.floor(ms / 60_000), h = Math.floor(m / 60);
-  return h ? `${h}h ${m % 60}m` : `${m}m`;
-}
-function fmtTime(ts) {
-  if (!ts) return "—";
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+import { fmtTime, fmtDur } from "@/lib/formatters";
 
 const PALETTE = ["#53fc18","#60a5fa","#f97316","#a78bfa","#f43f5e","#fbbf24","#34d399","#fb923c"];
 function catColor(name, allNames) {
@@ -85,32 +77,41 @@ export default function CategoryTimeline({ categoryHistory, categoryStats = [], 
             const isBest  = s.category === topByMsgs?.category;
 
             return (
-              <div key={s.category}
-                className="relative grid grid-cols-[1fr_80px_90px_90px] items-center gap-2 overflow-hidden rounded-lg border border-kick-border/60 px-3 py-2 hover:bg-white/5">
-                {/* Activity bar background */}
-                <div className="pointer-events-none absolute inset-y-0 left-0 opacity-10 transition-all"
-                  style={{ width: `${barPct}%`, background: color }} />
-
-                <div className="relative flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: color }} />
-                  <span className="truncate text-sm font-medium text-neutral-100">{s.category}</span>
-                  {current && (
-                    <span className="shrink-0 rounded-full bg-kick-green/20 px-1.5 py-0.5 text-[10px] font-semibold text-kick-green">actual</span>
-                  )}
-                  {isBest && !current && (
-                    <span className="shrink-0 text-[10px]" title="Más activo">🏆</span>
-                  )}
+              <div key={s.category} className="flex flex-col gap-1">
+                {/* Stats row */}
+                <div className="relative grid grid-cols-[1fr_80px_90px_90px] items-center gap-2 overflow-hidden rounded-lg border border-kick-border/60 px-3 py-2 hover:bg-white/5">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 opacity-10 transition-all"
+                    style={{ width: `${barPct}%`, background: color }} />
+                  <div className="relative flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: color }} />
+                    <span className="truncate text-sm font-medium text-neutral-100">{s.category}</span>
+                    {current && <span className="shrink-0 rounded-full bg-kick-green/20 px-1.5 py-0.5 text-[10px] font-semibold text-kick-green">actual</span>}
+                    {isBest && !current && <span className="shrink-0 text-[10px]" title="Más activo">🏆</span>}
+                  </div>
+                  <div className="relative text-right font-mono text-xs text-neutral-400">{fmtDur(durMs)}</div>
+                  <div className={`relative text-right font-mono text-xs font-semibold ${isBest ? "text-kick-green" : "text-neutral-300"}`}>
+                    {s.avgMsgsPerMin}<span className="text-neutral-500 font-normal">/min</span>
+                  </div>
+                  <div className={`relative text-right font-mono text-xs ${s.category === topByUsers?.category ? "text-blue-400 font-semibold" : "text-neutral-400"}`}>
+                    {s.avgUsersPerMin}<span className="text-neutral-600 font-normal"> usr</span>
+                  </div>
                 </div>
 
-                <div className="relative text-right font-mono text-xs text-neutral-400">{fmtDur(durMs)}</div>
-                <div className={`relative text-right font-mono text-xs font-semibold ${isBest ? "text-kick-green" : "text-neutral-300"}`}>
-                  {s.avgMsgsPerMin}
-                  <span className="text-neutral-500 font-normal">/min</span>
-                </div>
-                <div className={`relative text-right font-mono text-xs ${s.category === topByUsers?.category ? "text-blue-400 font-semibold" : "text-neutral-400"}`}>
-                  {s.avgUsersPerMin}
-                  <span className="text-neutral-600 font-normal"> usr</span>
-                </div>
+                {/* Top 5 users in this category */}
+                {s.topUsers?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 px-1 pb-1">
+                    {s.topUsers.map((u, ui) => (
+                      <span key={u.username}
+                        className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-neutral-400">
+                        <span className={ui === 0 ? "text-yellow-400" : ui === 1 ? "text-neutral-300" : ui === 2 ? "text-amber-600" : "text-neutral-600"}>
+                          {ui + 1}.
+                        </span>
+                        <span className="truncate max-w-[80px]">{u.username}</span>
+                        <span className="font-mono text-neutral-600">{u.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

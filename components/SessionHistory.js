@@ -139,90 +139,101 @@ export default function SessionHistory() {
               </button>
             </div>
 
-            <div className="overflow-y-auto p-4 flex flex-col gap-2">
+            <div className="overflow-y-auto p-4 flex flex-col gap-4">
               {sessions.length === 0 && (
                 <p className="py-8 text-center text-sm text-neutral-500">
                   No hay sesiones guardadas aún. Detené una sesión para guardarla.
                 </p>
               )}
-              {sessions.map((s, i) => (
-                <div key={s.id}
-                  className={`rounded-lg border bg-black/40 p-3 ${selected === s.id ? "border-kick-green/60" : "border-kick-border"}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-semibold text-neutral-100">{s.displayName}</div>
-                      <div className="text-xs text-neutral-500">
-                        {fmtDate(s.startedAt)} · {fmtDuration(s.startedAt, s.stoppedAt)}
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs text-neutral-400">
-                        <span>{s.totalMessages.toLocaleString()} msgs</span>
-                        <span>{s.uniqueUsers} usuarios</span>
-                        {s.msgsPerMin > 0 && <span>~{s.msgsPerMin} msgs/min</span>}
-                        {s.topCategory && <span>📁 {s.topCategory.name}</span>}
-                        {s.peakMoment  && <span>📈 pico {s.peakMoment.count}</span>}
-                      </div>
-                      {/* Category breakdown if multiple */}
-                      {s.categoryHistory?.length > 1 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          {s.categoryHistory.map((c, ci) => {
-                            const mins = Math.round(c.durationMs / 60_000);
-                            if (mins < 1) return null;
-                            return (
-                              <span key={ci}
-                                className="rounded bg-white/5 px-2 py-0.5 text-[11px] text-neutral-500">
-                                {c.category} <span className="text-neutral-600">{mins}m</span>
-                              </span>
-                            );
-                          })}
+
+              {/* Group sessions by channel */}
+              {[...new Set(sessions.map((s) => s.slug))].map((slug) => {
+                const group = sessions.filter((s) => s.slug === slug);
+                return (
+                  <div key={slug} className="flex flex-col gap-2">
+                    {/* Channel header */}
+                    <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-neutral-500">
+                      <span className="font-semibold">{group[0].displayName}</span>
+                      <span className="flex-1 border-t border-kick-border/40" />
+                      <span>{group.length} sesión{group.length !== 1 ? "es" : ""}</span>
+                    </div>
+
+                    {/* Sessions of this channel */}
+                    {group.map((s) => {
+                      const globalIdx     = sessions.indexOf(s);
+                      const prevSameSlug  = sessions.slice(0, globalIdx).find((x) => x.slug === slug);
+                      return (
+                        <div key={s.id}
+                          className="rounded-lg border border-kick-border bg-black/40 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="text-xs text-neutral-500">
+                                {fmtDate(s.startedAt)} · {fmtDuration(s.startedAt, s.stoppedAt)}
+                              </div>
+                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs text-neutral-400">
+                                <span>{s.totalMessages.toLocaleString()} msgs</span>
+                                <span>{s.uniqueUsers} usuarios</span>
+                                {s.msgsPerMin > 0 && <span>~{s.msgsPerMin} msgs/min</span>}
+                                {s.topCategory && <span>📁 {s.topCategory.name}</span>}
+                                {s.peakMoment  && <span>📈 pico {s.peakMoment.count}</span>}
+                              </div>
+                              {s.categoryHistory?.length > 1 && (
+                                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                  {s.categoryHistory.map((c, ci) => {
+                                    const mins = Math.round(c.durationMs / 60_000);
+                                    if (mins < 1) return null;
+                                    return (
+                                      <span key={ci} className="rounded bg-white/5 px-2 py-0.5 text-[11px] text-neutral-500">
+                                        {c.category} <span className="text-neutral-600">{mins}m</span>
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              {prevSameSlug && (
+                                <button
+                                  onClick={() => { setComparing({ base: s, compare: prevSameSlug }); setOpen(false); }}
+                                  className="rounded border border-kick-border px-2 py-0.5 text-[11px] text-neutral-300 hover:border-kick-green/50">
+                                  Comparar con anterior
+                                </button>
+                              )}
+                              <button
+                                onClick={() => { deleteSession(s.id); setSessions((prev) => prev.filter((x) => x.id !== s.id)); }}
+                                className="rounded border border-kick-border px-2 py-0.5 text-[11px] text-neutral-500 hover:border-red-500/50 hover:text-red-400">
+                                Eliminar
+                              </button>
+                            </div>
+                          </div>
+                          {s.users.slice(0, 3).length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {s.users.slice(0, 3).map((u, ri) => (
+                                <span key={u.username} className="rounded bg-white/5 px-2 py-0.5 text-[11px] text-neutral-400">
+                                  {ri + 1}. {u.username} ({u.count})
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {s.topEmotes?.length > 0 && (
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] uppercase tracking-wide text-neutral-600">Emotes:</span>
+                              {s.topEmotes.slice(0, 5).map((e) => (
+                                <div key={e.name} className="flex items-center gap-1" title={`${e.name} · ${e.count}x`}>
+                                  {e.url
+                                    ? <img src={e.url} alt={e.name} className="h-4 w-auto object-contain" loading="lazy" />
+                                    : <span className="text-[10px] text-neutral-500">{e.name}</span>}
+                                  <span className="font-mono text-[10px] text-neutral-600">{e.count}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {i > 0 && (
-                        <button
-                          onClick={() => { setComparing({ base: s, compare: sessions[0] }); setOpen(false); }}
-                          className="rounded border border-kick-border px-2 py-0.5 text-[11px] text-neutral-300 hover:border-kick-green/50">
-                          Comparar con última
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          deleteSession(s.id);
-                          setSessions((prev) => prev.filter((x) => x.id !== s.id));
-                        }}
-                        className="rounded border border-kick-border px-2 py-0.5 text-[11px] text-neutral-500 hover:border-red-500/50 hover:text-red-400">
-                        Eliminar
-                      </button>
-                    </div>
+                      );
+                    })}
                   </div>
-                  {/* Mini top 3 users */}
-                  {s.users.slice(0, 3).length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {s.users.slice(0, 3).map((u, ri) => (
-                        <span key={u.username}
-                          className="rounded bg-white/5 px-2 py-0.5 text-[11px] text-neutral-400">
-                          {ri + 1}. {u.username} ({u.count})
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {/* Top emotes */}
-                  {s.topEmotes?.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] uppercase tracking-wide text-neutral-600">Emotes:</span>
-                      {s.topEmotes.slice(0, 5).map((e) => (
-                        <div key={e.name} className="flex items-center gap-1" title={`${e.name} · ${e.count}x`}>
-                          {e.url
-                            ? <img src={e.url} alt={e.name} className="h-4 w-auto object-contain" loading="lazy" />
-                            : <span className="text-[10px] text-neutral-500">{e.name}</span>
-                          }
-                          <span className="font-mono text-[10px] text-neutral-600">{e.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

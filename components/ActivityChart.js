@@ -142,7 +142,7 @@ function HeatView({ timeSeries }) {
   const svgH = rows.length * STEP + 20;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="min-w-0 overflow-x-auto">
       <svg width={svgW} height={svgH} style={{ display: "block", fontFamily: "monospace" }}>
         {[0, 10, 20, 30, 40, 50].map((col) => (
           <text key={col} x={LEFT + col * STEP} y={svgH - 2} fontSize="8" fill="#555">+{col}m</text>
@@ -187,7 +187,7 @@ export default function ActivityChart({ timeSeries, peaks = [], peakUsers = null
   const visiblePks = peaks.filter((p) => p.min >= timeSeries[0].min);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-kick-border bg-kick-panel p-4">
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-kick-border bg-kick-panel p-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-400">
